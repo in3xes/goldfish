@@ -381,7 +381,8 @@ USERINCLUDE    := \
 		-Iarch/$(hdr-arch)/include/generated/uapi \
 		-I$(srctree)/include/uapi \
 		-Iinclude/generated/uapi \
-                -include $(srctree)/include/linux/kconfig.h
+                -include $(srctree)/include/linux/kconfig.h \
+		-I$(srctree)/arch/x86/include/uapi
 
 # Use LINUXINCLUDE when you must reference the include/ directory.
 # Needed to be compatible with the O= option
@@ -404,11 +405,11 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 KBUILD_CXXFLAGS := -g -fno-strict-aliasing \
                   -fpermissive -w -ffreestanding \
                   -nostdinc -fno-strict-aliasing \
-                  -pipe -mfloat-abi=soft -freg-struct-return \
+                  -pipe -freg-struct-return \
                   -fomit-frame-pointer \
                   -fno-stack-protector -fno-tree-scev-cprop \
                   -nostdinc++ -fno-common -fno-tree-scev-cprop \
-		  -fexceptions -ftti 
+		  -fexceptions -frtti
 
 
 
@@ -817,7 +818,9 @@ NOSTDINC_FLAGS += -nostdinc -isystem $(shell $(CC) -print-file-name=include)
 CHECKFLAGS     += $(NOSTDINC_FLAGS)
 NOSTDINCXX_FLAGS = $(NOSTDINC_FLAGS) -nostdinc++ -Iinclude2 -I$(srctree)/include/c++ -fno-strict-aliasing -fno-common \
                   -fpermissive -w -Iinclude2 -I$(srctree)/include/asm/mach-generic -Iinclude2 -I$(srctree)/include/asm/mach-default \
-                  -Iinclude2 -I$(srctree)/arch/$(SRCARCH)/include -Iinclude2 -I$(srctree)/include
+                  -Iinclude2 -I$(srctree)/arch/$(SRCARCH)/include -Iinclude2 -I$(srctree)/include -I$(srctree)/arch/x86/include/uapi \
+		  -I$(srctree)/include/uapi  -I$(srctree)/arch/x86/include/generated -I$(srctree)/arch/x86/include/generated/uapi
+
 
 
 # warn about C99 declaration after statement
@@ -981,7 +984,7 @@ endif
 crtobjects     := $(crtbegin.o) $(crtend.o) $(crtbeginM.o) $(crtendM.o)
 
 $(crtobjects): $(srctree)/lib/gcc/crtstuff.c
-       $(Q)$(MAKE) $(build)=$(crtobj) build_crt=1 $@
+	$(Q)$(MAKE) $(build)=$(crtobj) build_crt=1 $@
 endif
 
 libsupcxx_headers      := cxxabi.h exception exception_defines.h new typeinfo
@@ -1079,13 +1082,14 @@ prepare1: prepare2 $(version_h) include/generated/utsrelease.h \
                    include/config/auto.conf
 	$(cmd_crmodverdir)
 
+prepare-crt: prepare1 $(crtobjects) $(cxx_headers)
 archprepare: archheaders archscripts prepare1 scripts_basic
 
 prepare0: archprepare
 	$(Q)$(MAKE) $(build)=.
 
 # All the preparing..
-prepare: prepare0
+prepare: prepare0 prepare-crt
 
 # Generate some files
 # ---------------------------------------------------------------------------

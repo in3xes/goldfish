@@ -193,6 +193,10 @@ obj-$(CONFIG_ASN1) += asn1_decoder.o
 
 obj-$(CONFIG_FONT_SUPPORT) += fonts/
 
+obj-$(CONFIG_CXX_RUNTIME) += cxa_atexit.o
+obj-$(CONFIG_CXX_RUNTIME) += gcc/
+obj-$(CONFIG_CXX_RUNTIME) += libstdc++-v3/
+
 hostprogs-y	:= gen_crc32table
 clean-files	:= crc32table.h
 

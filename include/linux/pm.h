@@ -578,9 +578,13 @@ struct dev_pm_info {
 	unsigned int		should_wakeup:1;
 #endif
 #ifdef CONFIG_PM
+#ifndef __cplusplus
 	struct timer_list	suspend_timer;
+#endif
 	unsigned long		timer_expires;
+#ifndef __cplusplus
 	struct work_struct	work;
+#endif
 	wait_queue_head_t	wait_queue;
 	struct wake_irq		*wakeirq;
 	atomic_t		usage_count;

@@ -55,14 +55,18 @@ vmlinux_link()
 	if [ "${SRCARCH}" != "um" ]; then
 		${LD} ${LDFLAGS} ${LDFLAGS_vmlinux} -o ${2}                  \
 			-T ${lds} ${KBUILD_VMLINUX_INIT}                     \
-			--start-group ${KBUILD_VMLINUX_MAIN} --end-group ${1}
+			lib/gcc/crtbegin.o                      	     \
+			--start-group ${KBUILD_VMLINUX_MAIN} --end-group ${1}\
+			lib/gcc/crtend.o
 	else
 		${CC} ${CFLAGS_vmlinux} -o ${2}                              \
 			-Wl,-T,${lds} ${KBUILD_VMLINUX_INIT}                 \
+			lib/gcc/crtbegin.o				     \
 			-Wl,--start-group                                    \
 				 ${KBUILD_VMLINUX_MAIN}                      \
 			-Wl,--end-group                                      \
-			-lutil -lrt -lpthread ${1}
+			-lutil -lrt -lpthread ${1}		             \
+			 lib/gcc/crtend.o
 		rm -f linux
 	fi
 }

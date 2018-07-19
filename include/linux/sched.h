@@ -228,8 +228,12 @@ extern void proc_sched_set_task(struct task_struct *p);
 
 #define TASK_STATE_TO_CHAR_STR "RSDTtXZxKWPNn"
 
+#ifndef __cplusplus
 extern char ___assert_task_state[1 - 2*!!(
 		sizeof(TASK_STATE_TO_CHAR_STR)-1 != ilog2(TASK_STATE_MAX)+1)];
+#else
+extern char __assert_task_state[1];
+#endif
 
 /* Convenience macros for the sake of set_task_state */
 #define TASK_KILLABLE		(TASK_WAKEKILL | TASK_UNINTERRUPTIBLE)
@@ -2012,6 +2016,14 @@ struct task_struct {
 	unsigned long	task_state_change;
 #endif
 	int pagefault_disabled;
+#ifdef CONFIG_CXX_RUNTIME
+       /* Copied from unwind-cxx.h */
+       struct {
+              void *caughtExceptions;
+               unsigned int uncaughtExceptions;
+       } cxa_eh_globals;
+#endif
+
 /* CPU-specific state of this task */
 	struct thread_struct thread;
 /*

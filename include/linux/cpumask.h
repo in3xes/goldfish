@@ -246,9 +246,9 @@ unsigned int cpumask_local_spread(unsigned int i, int node);
  *
  * After the loop, cpu is >= nr_cpu_ids.
  */
-#define for_each_cpu_and(cpu, mask, and)				\
+#define for_each_cpu_and(cpu, mask, and_var)				\
 	for ((cpu) = -1;						\
-		(cpu) = cpumask_next_and((cpu), (mask), (and)),		\
+		(cpu) = cpumask_next_and((cpu), (mask), (and_var)),		\
 		(cpu) < nr_cpu_ids;)
 #endif /* SMP */
 
