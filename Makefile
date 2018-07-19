@@ -347,8 +347,9 @@ include scripts/Kbuild.include
 
 # Make variables (CC, etc...)
 AS		= $(CROSS_COMPILE)as
-LD		= $(CROSS_COMPILE)ld
+LD		= $(CROSS_COMPILE)ld -nostdlib
 CC		= $(CROSS_COMPILE)gcc
+CXX		= $(CROSS_COMPILE)g++ $(KBUILD_CFLAGS) $(KBUILD_CXXFLAGS)
 CPP		= $(CC) -E
 AR		= $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
@@ -367,8 +368,8 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void $(CF)
 CFLAGS_MODULE   =
 AFLAGS_MODULE   =
-LDFLAGS_MODULE  =
-CFLAGS_KERNEL	=
+LDFLAGS_MODULE  = -r
+CFLAGS_KERNEL	= -fno-tree-scev-cprop
 AFLAGS_KERNEL	=
 CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage -fno-tree-loop-im
 CFLAGS_KCOV	= -fsanitize-coverage=trace-pc
@@ -400,6 +401,16 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Wno-format-security \
 		   -std=gnu89 $(call cc-option,-fno-PIE)
 
+KBUILD_CXXFLAGS := -g -fno-strict-aliasing \
+                  -fpermissive -w -ffreestanding \
+                  -nostdinc -fno-strict-aliasing \
+                  -pipe -mfloat-abi=soft -freg-struct-return \
+                  -fomit-frame-pointer \
+                  -fno-stack-protector -fno-tree-scev-cprop \
+                  -nostdinc++ -fno-common -fno-tree-scev-cprop \
+		  -fexceptions -ftti 
+
+
 
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
@@ -416,9 +427,10 @@ export VERSION PATCHLEVEL SUBLEVEL KERNELRELEASE KERNELVERSION
 export ARCH SRCARCH CONFIG_SHELL HOSTCC HOSTCFLAGS CROSS_COMPILE AS LD CC
 export CPP AR NM STRIP OBJCOPY OBJDUMP
 export MAKE AWK GENKSYMS INSTALLKERNEL PERL PYTHON UTS_MACHINE
-export HOSTCXX HOSTCXXFLAGS LDFLAGS_MODULE CHECK CHECKFLAGS
+export HOSTCXX HOSTCXXFLAGS LDFLAGS_MODULE CHECK CHECKFLAGS CXX
 
 export KBUILD_CPPFLAGS NOSTDINC_FLAGS LINUXINCLUDE OBJCOPYFLAGS LDFLAGS
+export KBUILD_CXXFLAGS NOSTDINCXX_FLAGS
 export KBUILD_CFLAGS CFLAGS_KERNEL CFLAGS_MODULE CFLAGS_GCOV CFLAGS_KCOV CFLAGS_KASAN
 export KBUILD_AFLAGS AFLAGS_KERNEL AFLAGS_MODULE
 export KBUILD_AFLAGS_MODULE KBUILD_CFLAGS_MODULE KBUILD_LDFLAGS_MODULE
@@ -628,11 +640,14 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, int-in-bool-context)
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS	+= $(call cc-option,-Oz,-Os)
+KBUILD_CXXFLAGS	+= $(call cc-option,-Oz,-Os)
 else
 ifdef CONFIG_PROFILE_ALL_BRANCHES
 KBUILD_CFLAGS	+= -O2
+KBUILD_CXXFLAGS	+= -O2
 else
 KBUILD_CFLAGS   += -O2
+KBUILD_CXXFLAGS	+= -O2
 endif
 endif
 
@@ -657,6 +672,7 @@ endif
 
 ifneq ($(CONFIG_FRAME_WARN),0)
 KBUILD_CFLAGS += $(call cc-option,-Wframe-larger-than=${CONFIG_FRAME_WARN})
+KBUILD_CXXFLAGS += $(call cc-option,-Wframe-larger-than=${CONFIG_FRAME_WARN})
 endif
 
 # Handle stack protector mode.
@@ -695,6 +711,8 @@ else
 endif
 endif
 KBUILD_CFLAGS += $(stackp-flag)
+KBUILD_CXXFLAGS += $(stackp-flag)
+
 
 ifdef CONFIG_KCOV
   ifeq ($(call cc-option, $(CFLAGS_KCOV)),)
@@ -740,6 +758,7 @@ endif
 
 ifdef CONFIG_FRAME_POINTER
 KBUILD_CFLAGS	+= -fno-omit-frame-pointer -fno-optimize-sibling-calls
+KBUILD_CXXFLAGS	+= -fno-omit-frame-pointer
 else
 # Some targets (ARM with Thumb2, for example), can't be built with frame
 # pointers.  For those, we don't have FUNCTION_TRACER automatically
@@ -796,6 +815,10 @@ endif
 # arch Makefile may override CC so keep this after arch Makefile is included
 NOSTDINC_FLAGS += -nostdinc -isystem $(shell $(CC) -print-file-name=include)
 CHECKFLAGS     += $(NOSTDINC_FLAGS)
+NOSTDINCXX_FLAGS = $(NOSTDINC_FLAGS) -nostdinc++ -Iinclude2 -I$(srctree)/include/c++ -fno-strict-aliasing -fno-common \
+                  -fpermissive -w -Iinclude2 -I$(srctree)/include/asm/mach-generic -Iinclude2 -I$(srctree)/include/asm/mach-default \
+                  -Iinclude2 -I$(srctree)/arch/$(SRCARCH)/include -Iinclude2 -I$(srctree)/include
+
 
 # warn about C99 declaration after statement
 KBUILD_CFLAGS += $(call cc-option,-Wdeclaration-after-statement,)
@@ -943,6 +966,34 @@ net-y		:= $(patsubst %/, %/built-in.o, $(net-y))
 libs-y1		:= $(patsubst %/, %/lib.a, $(libs-y))
 libs-y2		:= $(patsubst %/, %/built-in.o, $(libs-y))
 libs-y		:= $(libs-y1) $(libs-y2)
+ifdef CONFIG_CXX_RUNTIME
+crtobj         := $(objtree)/lib/gcc
+
+crtbegin.o     := $(crtobj)/crtbegin.o
+crtend.o       := $(crtobj)/crtend.o
+ifdef CONFIG_MODULES
+crtbeginM.o    := $(crtobj)/crtbeginM.o
+crtendM.o      := $(crtobj)/crtendM.o
+
+export crtbeginM.o crtendM.o
+endif
+
+crtobjects     := $(crtbegin.o) $(crtend.o) $(crtbeginM.o) $(crtendM.o)
+
+$(crtobjects): $(srctree)/lib/gcc/crtstuff.c
+       $(Q)$(MAKE) $(build)=$(crtobj) build_crt=1 $@
+endif
+
+libsupcxx_headers      := cxxabi.h exception exception_defines.h new typeinfo
+
+cxx_headers    := $(patsubst %,include/c++/%,$(libsupcxx_headers))
+
+$(cxx_headers):
+	$(Q)set -e; \
+	    if [ ! -d include/c++ ]; then mkdir -p include/c++; fi; \
+	    ln -fsn $(srctree)/lib/libstdc++-v3/libsupc++/$(@F) $@
+
+
 virt-y		:= $(patsubst %/, %/built-in.o, $(virt-y))
 
 # Externally visible symbols (used by link-vmlinux.sh)
