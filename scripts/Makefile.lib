@@ -141,7 +141,6 @@ endif
 
 ifeq ($(KBUILD_SRC),)
 __c_flags	= $(_c_flags)
-__cxx_flags     = $(call addtree,-I$(obj)) $(call flags,_cxx_flags)
 __a_flags	= $(_a_flags)
 __cpp_flags     = $(_cpp_flags)
 else
@@ -151,6 +150,7 @@ else
 #   and locates generated .h files
 # FIXME: Replace both with specific CFLAGS* statements in the makefiles
 __c_flags	= $(call addtree,-I$(obj)) $(call flags,_c_flags)
+__cxx_flags     = $(call addtree,-I$(obj)) $(call flags,_cxx_flags)
 __a_flags	=                          $(call flags,_a_flags)
 __cpp_flags     =                          $(call flags,_cpp_flags)
 endif

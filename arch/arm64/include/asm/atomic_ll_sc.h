@@ -190,7 +190,7 @@ __LL_SC_EXPORT(atomic64_dec_if_positive);
 __LL_SC_INLINE unsigned long						\
 __LL_SC_PREFIX(__cmpxchg_case_##name(volatile void *ptr,		\
 				     unsigned long old,			\
-				     unsigned long new))		\
+				     unsigned long new_idd))		\
 {									\
 	unsigned long tmp, oldval;					\
 									\
@@ -199,14 +199,14 @@ __LL_SC_PREFIX(__cmpxchg_case_##name(volatile void *ptr,		\
 	"1:	ld" #acq "xr" #sz "\t%" #w "[oldval], %[v]\n"		\
 	"	eor	%" #w "[tmp], %" #w "[oldval], %" #w "[old]\n"	\
 	"	cbnz	%" #w "[tmp], 2f\n"				\
-	"	st" #rel "xr" #sz "\t%w[tmp], %" #w "[new], %[v]\n"	\
+	"	st" #rel "xr" #sz "\t%w[tmp], %" #w "[new_idd], %[v]\n"	\
 	"	cbnz	%w[tmp], 1b\n"					\
 	"	" #mb "\n"						\
 	"	mov	%" #w "[oldval], %" #w "[old]\n"		\
 	"2:"								\
 	: [tmp] "=&r" (tmp), [oldval] "=&r" (oldval),			\
 	  [v] "+Q" (*(unsigned long *)ptr)				\
-	: [old] "Lr" (old), [new] "r" (new)				\
+	: [old] "Lr" (old), [new_idd] "r" (new_idd)				\
 	: cl);								\
 									\
 	return oldval;							\

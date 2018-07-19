@@ -59,7 +59,11 @@ extern void __chk_io_ptr(const volatile void __iomem *);
 #if defined(CC_USING_HOTPATCH) && !defined(__CHECKER__)
 #define notrace __attribute__((hotpatch(0,0)))
 #else
+#ifdef __cplusplus
+#define notrace
+#else
 #define notrace __attribute__((no_instrument_function))
+#endif
 #endif
 
 /* Intel compiler defines __GNUC__. So we will overwrite implementations
@@ -273,7 +277,7 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
  * with an explicit memory barrier or atomic instruction that provides the
  * required ordering.
  */
-
+#ifndef __cplusplus 
 #define __READ_ONCE(x, check)						\
 ({									\
 	union { typeof(x) __val; char __c[1]; } __u;			\
@@ -283,6 +287,19 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
 		__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
 	__u.__val;							\
 })
+#else
+#define __READ_ONCE(x, check)						\
+({									\
+	union { typeof(x) __val; char __c[1]; } __u = {0};			\
+	if (check)							\
+		__read_once_size(&(x), __u.__c, sizeof(x));		\
+	else								\
+		__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
+	smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
+	__u.__val;							\
+})
+#endif
+
 #define READ_ONCE(x) __READ_ONCE(x, 1)
 
 /*
