@@ -1807,7 +1807,9 @@ out_put:
  *	Shutdown a socket.
  */
 
-SYSCALL_DEFINE2(shutdown, int, fd, int, how)
+extern int sys_shutdown_wrapper(int fd, int how);
+//SYSCALL_DEFINE2(shutdown, int, fd, int, how)
+int sys_shutdown_internal(int fd, int how)
 {
 	int err, fput_needed;
 	struct socket *sock;
@@ -1820,6 +1822,10 @@ SYSCALL_DEFINE2(shutdown, int, fd, int, how)
 		fput_light(sock->file, fput_needed);
 	}
 	return err;
+}
+SYSCALL_DEFINE2(shutdown, int, fd, int, how)
+{
+           return sys_shutdown_wrapper(fd, how);   
 }
 
 /* A couple of helpful macros for getting the address of the 32/64 bit
@@ -2000,13 +2006,21 @@ out:
 	return err;
 }
 
-SYSCALL_DEFINE3(sendmsg, int, fd, struct user_msghdr __user *, msg, unsigned int, flags)
+extern int sys_sendmsg_wrapper_sms(int fd, struct user_msghdr __user * msg, unsigned int flags);
+
+//SYSCALL_DEFINE3(sendmsg, int, fd, struct user_msghdr __user *, msg, unsigned int, flags)
+long sys_sendmsg_internal(int fd, struct user_msghdr __user *msg, unsigned int flags)
 {
 	if (flags & MSG_CMSG_COMPAT)
 		return -EINVAL;
 	return __sys_sendmsg(fd, msg, flags);
 }
 
+SYSCALL_DEFINE3(sendmsg, int, fd, struct user_msghdr __user *, msg, unsigned int, flags)
+{
+
+           return sys_sendmsg_wrapper_sms(fd, msg, flags);
+}
 /*
  *	Linux sendmmsg interface
  */

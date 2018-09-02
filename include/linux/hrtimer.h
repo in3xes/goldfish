@@ -23,6 +23,7 @@
 #include <linux/percpu.h>
 #include <linux/timer.h>
 #include <linux/timerqueue.h>
+#include <linux/kconfig.h>
 
 struct hrtimer_clock_base;
 struct hrtimer_cpu_base;
